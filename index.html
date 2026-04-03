@@ -174,8 +174,12 @@
         function showWarning() {
             warningEl.style.display = 'block';
             warningEl.innerHTML = `⚠️ Some sound files could not be loaded:<br>
-                <strong>${missingFiles.map(n => n + '.*').join(', ')}</strong><br>
-                Place 1.ogg / 1.wav / 1.mp3 (etc.) in the same folder as this file.`;
+                Track # - <strong>${missingFiles.map(n => n + '.*').join(', ')}</strong><br>`;
+                
+            // Auto-hide warning after 10 seconds
+            setTimeout(() => {
+                warningEl.style.display = 'none';
+            }, 10000);
         }
 
         function playSound(key) {
