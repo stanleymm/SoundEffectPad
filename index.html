@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sound Pad 1-9</title>
+    <title>Sound Pad</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -84,10 +84,10 @@
     </style>
 </head>
 <body>
-    <h1>🎵 Sound Pad 1-9</h1>
+    <h1>🎵 Sound Pad 🎵</h1>
     <div class="info">
-        Press keys <strong>1–9</strong> or <strong>Numpad 1–9</strong><br>
-        Press <strong>0</strong> or <strong>Numpad 0</strong> to stop all
+        Press keys <strong>1–9</strong> to play sound<br>
+        Press <strong>0</strong> to stop all
     </div>
 
     <div class="keys" id="keyContainer"></div>
@@ -106,7 +106,7 @@
         const warningEl = document.getElementById('warning');
         const keyContainer = document.getElementById('keyContainer');
 
-        // Create on-screen buttons 1-9
+        // Create buttons 1-9
         for (let i = 1; i <= 9; i++) {
             const btn = document.createElement('div');
             btn.className = 'key';
@@ -115,7 +115,6 @@
             keyContainer.appendChild(btn);
             buttons[i] = btn;
 
-            // Click support (will be disabled later if file missing)
             btn.addEventListener('click', () => {
                 if (!btn.classList.contains('disabled')) {
                     playSound(i);
@@ -123,74 +122,91 @@
             });
         }
 
-        // Load sounds and handle missing files
-        function loadSounds() {
-            for (let i = 1; i <= 9; i++) {
-                const audio = new Audio(`${i}.wav`);
+        // Try to load sound with multiple formats
+        function loadSound(key) {
+            const extensions = ['.ogg', '.wav', '.mp3']; // Best order for Android + desktop
+            let loaded = false;
+
+            for (let ext of extensions) {
+                const audio = new Audio();
                 audio.preload = "auto";
+                audio.src = `${key}${ext}`;
 
-                // Handle file not found or loading error
-                audio.addEventListener('error', () => {
-                    if (!missingFiles.includes(i)) {
-                        missingFiles.push(i);
-                        disableButton(i);
-                        showWarning();
-                    }
-                });
-
-                // Success case - mark as loaded
                 audio.addEventListener('canplaythrough', () => {
-                    console.log(`Successfully loaded ${i}.wav`);
+                    if (!loaded) {
+                        loaded = true;
+                        console.log(`✅ Loaded: ${key}${ext}`);
+                        sounds[key] = audio;
+                    }
                 }, { once: true });
 
-                sounds[i] = audio;
+                audio.addEventListener('error', () => {
+                    // Try next format
+                });
+
+                // Force load attempt
+                audio.load();
+            }
+
+            // If none loaded after a short delay, mark as missing
+            setTimeout(() => {
+                if (!sounds[key]) {
+                    if (!missingFiles.includes(key)) {
+                        missingFiles.push(key);
+                        disableButton(key);
+                        showWarning();
+                    }
+                }
+            }, 1500);
+        }
+
+        function loadAllSounds() {
+            for (let i = 1; i <= 9; i++) {
+                loadSound(i);
             }
         }
 
         function disableButton(key) {
             const btn = buttons[key];
-            if (btn) {
-                btn.classList.add('disabled');
-                btn.style.pointerEvents = 'none';
-            }
+            if (btn) btn.classList.add('disabled');
         }
 
         function showWarning() {
             warningEl.style.display = 'block';
-            warningEl.innerHTML = `⚠️ Warning: The following files could not be found or failed to load:<br>
-                                   <strong>${missingFiles.map(n => n + '.wav').join(', ')}</strong><br>
-                                   Please place them in the same folder as index.html`;
-
-            // Auto-hide warning after 10 seconds
-            setTimeout(() => {
-                warningEl.style.display = 'none';
-            }, 10000);
+            warningEl.innerHTML = `⚠️ Some sound files could not be loaded:<br>
+                <strong>${missingFiles.map(n => n + '.*').join(', ')}</strong><br>
+                Place 1.ogg / 1.wav / 1.mp3 (etc.) in the same folder as this file.`;
         }
 
         function playSound(key) {
             const sound = sounds[key];
-            if (!sound) return;
+            if (!sound) {
+                statusEl.textContent = `❌ No sound loaded for ${key}`;
+                return;
+            }
 
             const btn = buttons[key];
             if (btn) btn.classList.add('playing');
 
+            // Restart from beginning (allows overlapping if pressed again)
             sound.currentTime = 0;
-            sound.play().catch(err => {
-                console.error(`Error playing ${key}.wav:`, err);
-                statusEl.textContent = `❌ Cannot play ${key}.wav`;
+
+            sound.play().then(() => {
+                statusEl.textContent = `▶ Playing ${key}`;
+            }).catch(err => {
+                console.error(`Play error for ${key}:`, err);
+                statusEl.textContent = `❌ Cannot play ${key} (autoplay blocked?)`;
             });
 
-            statusEl.textContent = `▶ Playing ${key}.wav`;
-
-            // Remove visual feedback when sound finishes
+            // Remove playing effect when done
             sound.onended = () => {
                 if (btn) btn.classList.remove('playing');
             };
 
-            // Safety timeout
+            // Fallback timeout
             setTimeout(() => {
                 if (btn) btn.classList.remove('playing');
-            }, 4000);
+            }, 5000);
         }
 
         function stopAllSounds() {
@@ -204,40 +220,29 @@
             });
 
             statusEl.textContent = '⏹ All sounds stopped';
-            setTimeout(() => {
-                if (statusEl.textContent.includes('stopped')) statusEl.textContent = '';
-            }, 1500);
+            setTimeout(() => statusEl.textContent = '', 1500);
         }
 
-        // Keyboard support (Main + Numpad)
+        // Keyboard support
         document.addEventListener('keydown', (e) => {
-            console.log(`Key pressed → ${e.key} | code: ${e.code}`);
-
             if (e.key >= '1' && e.key <= '9') {
                 const keyNum = parseInt(e.key);
-                // Only play if button is not disabled
                 if (!buttons[keyNum].classList.contains('disabled')) {
                     playSound(keyNum);
                 }
             } 
-            else if (e.code.startsWith('Numpad') && ['1','2','3','4','5','6','7','8','9'].includes(e.key)) {
-                const keyNum = parseInt(e.key);
-                if (!buttons[keyNum].classList.contains('disabled')) {
-                    playSound(keyNum);
-                }
-            } 
-            else if (e.key === '0' || e.code === 'Numpad0') {
+            else if (e.key === '0') {
                 stopAllSounds();
             }
         });
 
-        // Stop All button
+        // Stop button
         document.getElementById('stopAll').addEventListener('click', stopAllSounds);
 
         // Initialize
         window.addEventListener('load', () => {
-            loadSounds();
-            console.log("%cSound Pad 1-9 ready! Place your 1.wav to 9.wav files in this folder.", "color: #4a4aff");
+            loadAllSounds();
+            console.log("%cSound Pad ready! Supports .ogg, .wav, .mp3", "color: #4a4aff; font-size: 16px");
         });
     </script>
 </body>
