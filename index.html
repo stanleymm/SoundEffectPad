@@ -13,78 +13,184 @@
             margin: 0;
             padding: 20px;
         }
-        h1 { margin: 20px 0; }
+        h1 { margin: 20px 0; color: #4a4aff; }
         .info {
             font-size: 18px;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
             line-height: 1.5;
         }
         .keys {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
             gap: 15px;
-            max-width: 400px;
+            max-width: 420px;
             margin: 30px auto;
         }
         .key {
             background: #1e1e3f;
             border: 3px solid #4a4aff;
-            border-radius: 12px;
-            padding: 30px 10px;
-            font-size: 28px;
+            border-radius: 15px;
+            padding: 35px 10px;
+            font-size: 32px;
             font-weight: bold;
             cursor: pointer;
-            transition: all 0.1s;
+            transition: all 0.15s ease;
+            user-select: none;
         }
-        .key:active {
+        .key:active, .key.playing {
             background: #4a4aff;
-            transform: scale(0.95);
+            border-color: #00ffcc;
+            transform: scale(0.92);
+            box-shadow: 0 0 20px #4a4aff;
+        }
+        .key.disabled {
+            background: #333344;
+            border-color: #555566;
+            color: #888899;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+        .stop-btn {
+            background: #c42b2b;
+            border: none;
+            color: white;
+            padding: 15px 40px;
+            font-size: 20px;
+            border-radius: 12px;
+            cursor: pointer;
+            margin: 25px auto;
+            display: block;
+            transition: all 0.2s;
+        }
+        .stop-btn:hover {
+            background: #e63939;
         }
         .status {
-            margin-top: 20px;
+            margin: 15px 0;
+            font-size: 17px;
+            min-height: 28px;
+            color: #00ffcc;
+        }
+        .warning {
+            background: #3f2a00;
+            color: #ffcc00;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px auto;
+            max-width: 520px;
             font-size: 16px;
-            min-height: 24px;
+            display: none;
         }
     </style>
 </head>
 <body>
     <h1>🎵 Sound Pad 1-9</h1>
     <div class="info">
-        Press keys <strong>1–9</strong> or <strong>Numpad 1–9</strong> to play sounds<br>
-        Press <strong>0</strong> or <strong>Numpad 0</strong> to stop all sounds
+        Press keys <strong>1–9</strong> or <strong>Numpad 1–9</strong><br>
+        Press <strong>0</strong> or <strong>Numpad 0</strong> to stop all
     </div>
 
-    <div class="keys">
-        <div class="key" data-key="1">1</div>
-        <div class="key" data-key="2">2</div>
-        <div class="key" data-key="3">3</div>
-        <div class="key" data-key="4">4</div>
-        <div class="key" data-key="5">5</div>
-        <div class="key" data-key="6">6</div>
-        <div class="key" data-key="7">7</div>
-        <div class="key" data-key="8">8</div>
-        <div class="key" data-key="9">9</div>
-    </div>
+    <div class="keys" id="keyContainer"></div>
+
+    <button class="stop-btn" id="stopAll">⏹ STOP ALL SOUNDS</button>
 
     <div class="status" id="status"></div>
+    <div class="warning" id="warning"></div>
 
     <script>
-        // Load all sounds 1.wav to 9.wav
         const sounds = {};
-        for (let i = 1; i <= 9; i++) {
-            sounds[i] = new Audio(`${i}.wav`);
-            sounds[i].preload = "auto";
-        }
+        const buttons = {};
+        let missingFiles = [];
 
         const statusEl = document.getElementById('status');
+        const warningEl = document.getElementById('warning');
+        const keyContainer = document.getElementById('keyContainer');
+
+        // Create on-screen buttons 1-9
+        for (let i = 1; i <= 9; i++) {
+            const btn = document.createElement('div');
+            btn.className = 'key';
+            btn.textContent = i;
+            btn.dataset.key = i;
+            keyContainer.appendChild(btn);
+            buttons[i] = btn;
+
+            // Click support (will be disabled later if file missing)
+            btn.addEventListener('click', () => {
+                if (!btn.classList.contains('disabled')) {
+                    playSound(i);
+                }
+            });
+        }
+
+        // Load sounds and handle missing files
+        function loadSounds() {
+            for (let i = 1; i <= 9; i++) {
+                const audio = new Audio(`${i}.wav`);
+                audio.preload = "auto";
+
+                // Handle file not found or loading error
+                audio.addEventListener('error', () => {
+                    if (!missingFiles.includes(i)) {
+                        missingFiles.push(i);
+                        disableButton(i);
+                        showWarning();
+                    }
+                });
+
+                // Success case - mark as loaded
+                audio.addEventListener('canplaythrough', () => {
+                    console.log(`Successfully loaded ${i}.wav`);
+                }, { once: true });
+
+                sounds[i] = audio;
+            }
+        }
+
+        function disableButton(key) {
+            const btn = buttons[key];
+            if (btn) {
+                btn.classList.add('disabled');
+                btn.style.pointerEvents = 'none';
+            }
+        }
+
+        function showWarning() {
+            warningEl.style.display = 'block';
+            warningEl.innerHTML = `⚠️ Warning: The following files could not be found or failed to load:<br>
+                                   <strong>${missingFiles.map(n => n + '.wav').join(', ')}</strong><br>
+                                   Please place them in the same folder as index.html`;
+
+            // Auto-hide warning after 10 seconds
+            setTimeout(() => {
+                warningEl.style.display = 'none';
+            }, 10000);
+        }
 
         function playSound(key) {
-            if (sounds[key]) {
-                sounds[key].currentTime = 0;   // restart from beginning
-                sounds[key].play().catch(err => console.log("Play error:", err));
-                statusEl.textContent = `▶ Playing ${key}.wav`;
-                setTimeout(() => statusEl.textContent = '', 1500);
-            }
+            const sound = sounds[key];
+            if (!sound) return;
+
+            const btn = buttons[key];
+            if (btn) btn.classList.add('playing');
+
+            sound.currentTime = 0;
+            sound.play().catch(err => {
+                console.error(`Error playing ${key}.wav:`, err);
+                statusEl.textContent = `❌ Cannot play ${key}.wav`;
+            });
+
+            statusEl.textContent = `▶ Playing ${key}.wav`;
+
+            // Remove visual feedback when sound finishes
+            sound.onended = () => {
+                if (btn) btn.classList.remove('playing');
+            };
+
+            // Safety timeout
+            setTimeout(() => {
+                if (btn) btn.classList.remove('playing');
+            }, 4000);
         }
 
         function stopAllSounds() {
@@ -92,35 +198,46 @@
                 sound.pause();
                 sound.currentTime = 0;
             });
-            statusEl.textContent = '⏹ Stopped all sounds';
-            setTimeout(() => statusEl.textContent = '', 1500);
+
+            Object.values(buttons).forEach(btn => {
+                btn.classList.remove('playing');
+            });
+
+            statusEl.textContent = '⏹ All sounds stopped';
+            setTimeout(() => {
+                if (statusEl.textContent.includes('stopped')) statusEl.textContent = '';
+            }, 1500);
         }
 
-        // Keyboard support (main + numpad)
+        // Keyboard support (Main + Numpad)
         document.addEventListener('keydown', (e) => {
-            console.log(`Key pressed: ${e.key} | code: ${e.code}`);
+            console.log(`Key pressed → ${e.key} | code: ${e.code}`);
 
             if (e.key >= '1' && e.key <= '9') {
-                playSound(e.key);
+                const keyNum = parseInt(e.key);
+                // Only play if button is not disabled
+                if (!buttons[keyNum].classList.contains('disabled')) {
+                    playSound(keyNum);
+                }
             } 
-            else if (e.code.startsWith('Numpad') && e.key >= '1' && e.key <= '9') {
-                playSound(e.key);
+            else if (e.code.startsWith('Numpad') && ['1','2','3','4','5','6','7','8','9'].includes(e.key)) {
+                const keyNum = parseInt(e.key);
+                if (!buttons[keyNum].classList.contains('disabled')) {
+                    playSound(keyNum);
+                }
             } 
             else if (e.key === '0' || e.code === 'Numpad0') {
                 stopAllSounds();
             }
         });
 
-        // Click on-screen buttons
-        document.querySelectorAll('.key').forEach(btn => {
-            btn.addEventListener('click', () => {
-                playSound(btn.dataset.key);
-            });
-        });
+        // Stop All button
+        document.getElementById('stopAll').addEventListener('click', stopAllSounds);
 
-        // Optional: Show message if some files are missing
+        // Initialize
         window.addEventListener('load', () => {
-            console.log("Sound Pad loaded. Make sure 1.wav to 9.wav are in the same folder.");
+            loadSounds();
+            console.log("%cSound Pad 1-9 ready! Place your 1.wav to 9.wav files in this folder.", "color: #4a4aff");
         });
     </script>
 </body>
