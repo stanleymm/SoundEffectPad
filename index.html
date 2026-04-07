@@ -20,12 +20,13 @@
             margin: 0;
             padding: 20px;
             line-height: 1.4;
+            touch-action: manipulation;
         }
 
         h1 {
             margin: 20px auto;
             color: #4a4aff;
-            font-size: clamp(24px, 7vw, 45px);           /* Responsive size */
+            font-size: clamp(24px, 7vw, 42px);
             max-width: 460px;
             width: 100%;
         }
@@ -38,7 +39,7 @@
 
         .keys {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);   /* Equal width columns */
+            grid-template-columns: repeat(3, 1fr);
             gap: 15px;
             max-width: 460px;
             margin: 30px auto;
@@ -49,8 +50,8 @@
             border: 3px solid #4a4aff;
             border-radius: 15px;
             padding: 20px 12px;
-            font-size: 18px;           /* As requested */
-            font-weight: 500;          /* As requested */
+            font-size: 18px;
+            font-weight: 500;
             cursor: pointer;
             transition: all 0.15s ease;
             user-select: none;
@@ -109,6 +110,30 @@
             max-width: 520px;
             font-size: 16px;
             display: none;
+        }
+
+        /* Small screen optimization (iPhone 12 and narrower) */
+        @media (max-width: 460px) {
+            .keys {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 14px;
+                margin: 25px auto;
+            }
+
+            .key {
+                min-height: 66px;
+                font-size: 17px;
+                font-weight: 400;
+                padding: 14px 10px;
+            }
+
+            h1 {
+                font-size: clamp(24px, 8vw, 36px);
+            }
+
+            .info {
+                font-size: 16px;
+            }
         }
     </style>
 </head>
@@ -175,8 +200,9 @@
             }
         }
 
+        // Updated: Only .wav and .mp3 (removed .ogg for faster loading)
         function loadSound(key) {
-            const extensions = ['.ogg', '.wav', '.mp3'];
+            const extensions = ['.wav', '.mp3'];   // Faster loading - no ogg
             let loaded = false;
 
             extensions.forEach(ext => {
@@ -188,6 +214,7 @@
                     if (!loaded) {
                         loaded = true;
                         sounds[key] = audio;
+                        console.log(`✅ Loaded: ${key}${ext}`);
                     }
                 }, { once: true });
 
@@ -195,13 +222,14 @@
                 audio.load();
             });
 
+            // Mark as missing if neither format loads
             setTimeout(() => {
                 if (!sounds[key] && !missingFiles.includes(key)) {
                     missingFiles.push(key);
                     disableButton(key);
                     showWarning();
                 }
-            }, 1200);
+            }, 1000);   // Slightly faster timeout since we removed one format
         }
 
         function loadAllSounds() {
