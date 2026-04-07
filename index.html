@@ -115,11 +115,7 @@
         for (let i = 1; i <= 9; i++) {
             const btn = document.createElement('div');
             btn.className = 'key';
-            if (i = 1) {
-                btn.textContent = "BGM 1";
-            } else {
-                btn.textContent = i;
-            }
+            btn.textContent = i;
             btn.dataset.key = i;
             keyContainer.appendChild(btn);
             buttons[i] = btn;
