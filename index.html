@@ -3,52 +3,66 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Google+Sans:ital,opsz,wght@0,17..18,400..700;1,17..18,400..700&display=swap" rel="stylesheet"><title>Sound Pad - MP3 + WAV</title>
+    <title>Sound Pad - MP3 + WAV</title>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
+
         body {
-            font-family: "Google-Sans", sans-serif;
+            font-family: "Google Sans", "Product Sans", "Roboto", Arial, sans-serif;
             background: #0a0a1f;
             color: #fff;
             text-align: center;
             margin: 0;
-            padding: 15px;
+            padding: 20px;
+            line-height: 1.4;
         }
-        h1 { margin: 20px 0; color: #4a4aff; }
+
+        h1 {
+            margin: 20px auto;
+            color: #4a4aff;
+            font-size: clamp(28px, 8vw, 48px);           /* Responsive size */
+            max-width: 460px;
+            width: 100%;
+        }
+
         .info {
-            font-size: 18px;
-            margin-bottom: 20px;
+            font-size: 17px;
+            margin-bottom: 25px;
             line-height: 1.5;
         }
+
         .keys {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 14px;
-            max-width: 420px;
+            grid-template-columns: repeat(3, 1fr);   /* Equal width columns */
+            gap: 15px;
+            max-width: 460px;
             margin: 30px auto;
         }
+
         .key {
             background: #1e1e3f;
             border: 3px solid #4a4aff;
             border-radius: 15px;
-            padding: 25px 10px;
-            font-size: 18px;
-            font-weight: bold;
+            padding: 20px 12px;
+            font-size: 18px;           /* As requested */
+            font-weight: 500;          /* As requested */
             cursor: pointer;
             transition: all 0.15s ease;
             user-select: none;
             display: flex;
             align-items: center;
             justify-content: center;
-            min-height: 90px;
+            min-height: 88px;
+            text-align: center;
         }
+
         .key:active, .key.playing {
             background: #4a4aff;
             border-color: #00ffcc;
-            transform: scale(0.92);
-            box-shadow: 0 0 20px #4a4aff;
+            transform: scale(0.93);
+            box-shadow: 0 0 25px #4a4aff;
         }
+
         .key.disabled {
             background: #333344;
             border-color: #555566;
@@ -56,6 +70,7 @@
             cursor: not-allowed;
             opacity: 0.6;
         }
+
         .stop-btn {
             background: #c42b2b;
             border: none;
@@ -68,13 +83,18 @@
             display: block;
             transition: all 0.2s;
         }
-        .stop-btn:hover { background: #e63939; }
+
+        .stop-btn:hover {
+            background: #e63939;
+        }
+
         .status {
             margin: 15px 0;
             font-size: 17px;
             min-height: 28px;
             color: #00ffcc;
         }
+
         .warning {
             background: #3f2a00;
             color: #ffcc00;
@@ -90,7 +110,6 @@
 <body>
     <h1>🎵 Sound Pad (MP3 + WAV) 🎵</h1>
     <div class="info">
-        Place <strong>sounds.csv</strong> and your sound files in the same folder<br>
         Press keys <strong>1–9</strong> or tap buttons<br>
         Supports: .ogg → .wav → .mp3
     </div>
@@ -105,7 +124,7 @@
     <script>
         const sounds = {};
         const buttons = {};
-        const displayNames = {};   // New: store display name for each key
+        const displayNames = {};
         let missingFiles = [];
 
         const statusEl = document.getElementById('status');
@@ -125,23 +144,18 @@
                     if (!line.trim()) return;
                     const [filename, ...nameParts] = line.split(',');
                     const key = filename.trim();
-                    const displayName = nameParts.join(',').trim(); // Allow commas in name
+                    const displayName = nameParts.join(',').trim();
 
-                    if (key && displayName && !isNaN(key) && key >= 1 && key <= 9) {
-                        displayNames[key] = displayName || key;
+                    if (key && displayName && key >= 1 && key <= 9) {
+                        displayNames[key] = displayName;
                     }
                 });
-
-                console.log("✅ CSV loaded:", displayNames);
             } catch (err) {
-                console.warn("⚠️ Could not load sounds.csv — using numbers as names");
-                for (let i = 1; i <= 9; i++) {
-                    displayNames[i] = i.toString();
-                }
+                console.warn("⚠️ sounds.csv not found — using numbers");
+                for (let i = 1; i <= 9; i++) displayNames[i] = i.toString();
             }
         }
 
-        // Create buttons using display names from CSV
         function createButtons() {
             for (let i = 1; i <= 9; i++) {
                 const btn = document.createElement('div');
@@ -152,14 +166,11 @@
                 buttons[i] = btn;
 
                 btn.addEventListener('click', () => {
-                    if (!btn.classList.contains('disabled')) {
-                        playSound(i);
-                    }
+                    if (!btn.classList.contains('disabled')) playSound(i);
                 });
             }
         }
 
-        // Load sound with multiple format support
         function loadSound(key) {
             const extensions = ['.ogg', '.wav', '.mp3'];
             let loaded = false;
@@ -173,7 +184,6 @@
                     if (!loaded) {
                         loaded = true;
                         sounds[key] = audio;
-                        console.log(`✅ Loaded: ${key}${ext}`);
                     }
                 }, { once: true });
 
@@ -191,23 +201,18 @@
         }
 
         function loadAllSounds() {
-            for (let i = 1; i <= 9; i++) {
-                loadSound(i);
-            }
+            for (let i = 1; i <= 9; i++) loadSound(i);
         }
 
         function disableButton(key) {
-            const btn = buttons[key];
-            if (btn) btn.classList.add('disabled');
+            if (buttons[key]) buttons[key].classList.add('disabled');
         }
 
         function showWarning() {
             if (warningEl.style.display === 'block') return;
-
             warningEl.style.display = 'block';
             warningEl.innerHTML = `⚠️ Some sound files are missing:<br>
-                <strong>${missingFiles.map(n => `${n}.*`).join(', ')}</strong><br>
-                Please add the files next to sounds.csv`;
+                <strong>${missingFiles.map(n => `${n}.*`).join(', ')}</strong>`;
 
             setTimeout(() => {
                 warningEl.style.display = 'none';
@@ -216,10 +221,7 @@
 
         function playSound(key) {
             const sound = sounds[key];
-            if (!sound) {
-                statusEl.textContent = `❌ Sound ${key} not available`;
-                return;
-            }
+            if (!sound) return;
 
             const btn = buttons[key];
             if (btn) btn.classList.add('playing');
@@ -229,39 +231,26 @@
 
             sound.play().then(() => {
                 statusEl.textContent = `▶ Playing ${name}`;
-            }).catch(err => {
-                console.error(`Play failed:`, err);
+            }).catch(() => {
                 statusEl.textContent = `❌ Cannot play ${name}`;
             });
 
-            sound.onended = () => {
-                if (btn) btn.classList.remove('playing');
-            };
+            sound.onended = () => btn && btn.classList.remove('playing');
 
-            setTimeout(() => {
-                if (btn) btn.classList.remove('playing');
-            }, 5000);
+            setTimeout(() => btn && btn.classList.remove('playing'), 5000);
         }
 
         function stopAllSounds() {
-            Object.values(sounds).forEach(sound => {
-                sound.pause();
-                sound.currentTime = 0;
-            });
-
+            Object.values(sounds).forEach(s => { s.pause(); s.currentTime = 0; });
             Object.values(buttons).forEach(btn => btn.classList.remove('playing'));
-
             statusEl.textContent = '⏹ All sounds stopped';
             setTimeout(() => statusEl.textContent = '', 1500);
         }
 
-        // Keyboard support
         document.addEventListener('keydown', (e) => {
             if (e.key >= '1' && e.key <= '9') {
-                const keyNum = parseInt(e.key);
-                if (!buttons[keyNum].classList.contains('disabled')) {
-                    playSound(keyNum);
-                }
+                const k = parseInt(e.key);
+                if (!buttons[k].classList.contains('disabled')) playSound(k);
             } else if (e.key === '0') {
                 stopAllSounds();
             }
@@ -269,12 +258,11 @@
 
         document.getElementById('stopAll').addEventListener('click', stopAllSounds);
 
-        // Initialize everything
+        // Initialize
         window.addEventListener('load', async () => {
-            await loadCSV();        // Load display names first
-            createButtons();        // Create buttons with names from CSV
-            loadAllSounds();        // Load audio files
-            console.log("%cSound Pad ready! (CSV support enabled)", "color: #4a4aff");
+            await loadCSV();
+            createButtons();
+            loadAllSounds();
         });
     </script>
 </body>
